@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rotten Tomatoes Analytics Report</title>
+  <style>
+    /* ── Reset & base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0D1117;
+      --card:     #161B22;
+      --border:   #30363D;
+      --text:     #E6EDF3;
+      --muted:    #8B949E;
+      --accent:   #E63946;
+      --green:    #2A9D8F;
+      --yellow:   #E9C46A;
+      --blue:     #457B9D;
+      --radius:   12px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Layout ── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #0D1117 0%, #161B22 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 0 48px;
+      text-align: center;
+    }
+
+    .tomato-icon { font-size: 56px; display: block; margin-bottom: 16px; }
+
+    header h1 {
+      font-size: clamp(28px, 5vw, 44px);
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--text);
+    }
+
+    header h1 span { color: var(--accent); }
+
+    header p {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 16px;
+      max-width: 560px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .meta-pills {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .pill {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .pill strong { color: var(--text); }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(13,17,23,0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 0;
+      overflow-x: auto;
+      padding: 0 16px;
+      scrollbar-width: none;
+    }
+
+    nav ul::-webkit-scrollbar { display: none; }
+
+    nav li a {
+      display: block;
+      padding: 14px 16px;
+      font-size: 13px;
+      color: var(--muted);
+      white-space: nowrap;
+      border-bottom: 2px solid transparent;
+      transition: color 0.2s, border-color 0.2s;
+    }
+
+    nav li a:hover, nav li a.active {
+      color: var(--text);
+      border-bottom-color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* ── Sections ── */
+    section { padding: 64px 0; border-bottom: 1px solid var(--border); }
+    section:last-of-type { border-bottom: none; }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    h2 {
+      font-size: clamp(22px, 3vw, 30px);
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .section-intro {
+      color: var(--muted);
+      max-width: 680px;
+      margin-bottom: 40px;
+    }
+
+    /* ── KPI cards ── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+      margin-bottom: 48px;
+    }
+
+    .kpi {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 20px;
+      text-align: center;
+    }
+
+    .kpi-value {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .kpi-label {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Chart cards ── */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+      gap: 24px;
+    }
+
+    .charts-grid.single { grid-template-columns: 1fr; }
+    .charts-grid.triple { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+
+    .chart-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .chart-card:hover {
+      border-color: #484F58;
+      transform: translateY(-2px);
+    }
+
+    .chart-card img {
+      width: 100%;
+      display: block;
+    }
+
+    .chart-info {
+      padding: 16px 20px 20px;
+    }
+
+    .chart-num {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+
+    .chart-info h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .chart-info p {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── Insights ── */
+    .insights-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .insight-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .insight-icon {
+      font-size: 28px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .insight-card h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .insight-card p {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── Stack / Tech ── */
+    .tech-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .tech-badge {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 14px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tech-badge span { color: var(--muted); font-size: 12px; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 40px 0;
+      color: var(--muted);
+      font-size: 13px;
+      border-top: 1px solid var(--border);
+    }
+
+    footer a { color: var(--muted); }
+    footer a:hover { color: var(--text); }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .charts-grid { grid-template-columns: 1fr; }
+      .kpi-grid    { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ HEADER ═══════════════════════════════ -->
+<header>
+  <div class="container">
+    <span class="tomato-icon">🍅</span>
+    <h1>Rotten Tomatoes <span>Analytics</span></h1>
+    <p>A full exploratory data analysis of 17 000+ movies — critics vs. audiences, genre trends, studio rankings, and streaming windows.</p>
+    <div class="meta-pills">
+      <div class="pill"><strong>Dataset</strong> Maven Analytics</div>
+      <div class="pill"><strong>Movies</strong> ~17 000</div>
+      <div class="pill"><strong>Span</strong> 1914 – 2022</div>
+      <div class="pill"><strong>Charts</strong> 10</div>
+      <div class="pill"><strong>Author</strong> Moataz</div>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════ NAV ══════════════════════════════════ -->
+<nav>
+  <div class="container">
+    <ul>
+      <li><a href="#overview">Overview</a></li>
+      <li><a href="#scores">Scores</a></li>
+      <li><a href="#genres">Genres</a></li>
+      <li><a href="#mpaa">MPAA</a></li>
+      <li><a href="#trends">Trends</a></li>
+      <li><a href="#studios">Studios</a></li>
+      <li><a href="#streaming">Streaming</a></li>
+      <li><a href="#insights">Insights</a></li>
+      <li><a href="#stack">Stack</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════ OVERVIEW ═════════════════════════════ -->
+<section id="overview">
+  <div class="container">
+    <div class="section-label">Project Overview</div>
+    <h2>What this analysis covers</h2>
+    <p class="section-intro">
+      This project analyses the Rotten Tomatoes movie dataset from Maven Analytics, walking through a full analytics pipeline: loading, cleaning, EDA, visualisation, and key findings.
+    </p>
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-value">17K+</div>
+        <div class="kpi-label">Movies Analysed</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-value">108</div>
+        <div class="kpi-label">Years of Film History</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-value">10</div>
+        <div class="kpi-label">Visualisations</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-value">0.67</div>
+        <div class="kpi-label">Critic–Audience Correlation</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-value">12</div>
+        <div class="kpi-label">Genres Studied</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-value">15</div>
+        <div class="kpi-label">Studios Ranked</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ SCORES ═══════════════════════════════ -->
+<section id="scores">
+  <div class="container">
+    <div class="section-label">Score Analysis</div>
+    <h2>Critics vs Audiences</h2>
+    <p class="section-intro">How closely do critics and audiences agree — and where do they diverge the most?</p>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <img src="visualizations/01_critics_vs_audience.png" alt="Critics vs Audience scatter" loading="lazy" />
+        <div class="chart-info">
+          <div class="chart-num">Chart 01</div>
+          <h3>Critics vs Audience Scores</h3>
+          <p>Scatter plot of Tomatometer vs Audience Rating, coloured by Fresh/Rotten status. The dashed diagonal represents perfect agreement — points above it mean audiences rated higher than critics.</p>
+        </div>
+      </div>
+      <div class="chart-card">
+        <img src="visualizations/02_rating_distributions.png" alt="Rating distributions" loading="lazy" />
+        <div class="chart-info">
+          <div class="chart-num">Chart 02</div>
+          <h3>Rating Score Distributions</h3>
+          <p>Histogram + KDE for both Tomatometer and Audience ratings. Critic scores are more spread out and bimodal; audience scores cluster in the 60–80 range.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ GENRES ═══════════════════════════════ -->
+<section id="genres">
+  <div class="container">
+    <div class="section-label">Genre Breakdown</div>
+    <h2>Genre vs Critical Reception</h2>
+    <p class="section-intro">Which genres are most likely to be Fresh — and where do critics and audiences disagree the most?</p>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <img src="visualizations/03_genre_status_heatmap.png" alt="Genre status heatmap" loading="lazy" />
+        <div class="chart-info">
+          <div class="chart-num">Chart 03</div>
+          <h3>Genre × Tomatometer Status Heatmap</h3>
+          <p>Counts of Certified Fresh, Fresh, and Rotten movies across the top 12 genres. Drama and Documentary consistently produce the most critically acclaimed films.</p>
+        </div>
+      </div>
+      <div class="chart-card">
+        <img src="visualizations/05_critic_audience_gap_genre.png" alt="Critic audience gap by genre" loading="lazy" />
+        <div class="chart-info">
+          <div class="chart-num">Chart 05</div>
+          <h3>Critic–Audience Gap by Genre</h3>
+          <p>Mean difference between critic and audience scores per genre. Green bars = audiences more generous; red bars = critics more generous. Horror and Action fans consistently enjoy their movies more than critics do.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ MPAA ════════════════════════════════ -->
+<section id="mpaa">
+  <div class="container">
+    <div class="section-label">MPAA Ratings</div>
+    <h2>Does Content Rating Affect Scores?</h2>
+    <p class="section-intro">How do G, PG, PG-13, R, NC-17, and NR films compare on both critic and audience scales?</p>
+    <div class="charts-grid single">
+      <div class="chart-card">
+        <img src="visualizations/04_mpaa_ratings_boxplot.png" alt="MPAA ratings boxplot" loading="lazy" />
+        <div class="chart-info">
+          <div class="chart-num">Chart 04</div>
+          <h3>Scores by MPAA Rating</h3>
+          <p>Side-by-side boxplots for critic and audience scores grouped by MPAA rating. NC-17 and NR films show higher critic variance; R-rated films tend to perform well with both groups.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ TRENDS ═══════════════════════════════ -->
+<section id="trends">
+  <div class="container">
+    <div class="section-label">Time Trends</div>
+    <h2>How Have Scores Changed Over Decades?</h2>
+    <p class="section-intro">Average critic and audience scores from 1980 to 2022, alongside the volume of films released each year.</p>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <img src="visualizations/07_score_trends.png" alt="Score trends over years" loading="lazy" />
+        <div class="chart-info">
+          <div class="chart-num">Chart 07</div>
+          <h3>Score Trends (1980–2022)</h3>
+          <p>Dual-axis line chart showing the evolution of average critic and audience scores year by year, with movie volume shown as background bars. The critic–audience gap has widened since the early 2000s.</p>
+        </div>
+      </div>
+      <div class="chart-card">
+        <img src="visualizations/06_runtime_violin.png" alt="Runtime violin" loading="lazy" />
+        <div class="chart-info">
+          <div class="chart-num">Chart 06</div>
+          <h3>Movie Runtime by Status</h3>
+          <p>Violin plot comparing runtime distributions for Certified Fresh, Fresh, and Rotten films. Certified Fresh films have a slightly longer median runtime, but the difference is modest.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ STUDIOS ══════════════════════════════ -->
+<section id="studios">
+  <div class="container">
+    <div class="section-label">Studio Performance</div>
+    <h2>Which Studios Make the Best Films?</h2>
+    <p class="section-intro">Top 15 studios ranked by average Tomatometer score, restricted to studios with at least 30 movies in the dataset.</p>
+    <div class="charts-grid single">
+      <div class="chart-card">
+        <img src="visualizations/08_top_studios.png" alt="Top studios chart" loading="lazy" />
+        <div class="chart-info">
+          <div class="chart-num">Chart 08</div>
+          <h3>Top Studios by Average Tomatometer</h3>
+          <p>Horizontal bar chart with movie count annotations. Prestige and arthouse distributors dominate the top spots, while large commercial studios cluster in the mid-range.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ STREAMING ════════════════════════════ -->
+<section id="streaming">
+  <div class="container">
+    <div class="section-label">Theater → Streaming</div>
+    <h2>Do Bad Movies Hit Streaming Faster?</h2>
+    <p class="section-intro">Distribution of days between theater release and streaming debut, split by Tomatometer status. Plus a deep-dive pairplot of all numeric variables.</p>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <img src="visualizations/10_days_to_streaming.png" alt="Days to streaming" loading="lazy" />
+        <div class="chart-info">
+          <div class="chart-num">Chart 10</div>
+          <h3>Theater-to-Streaming Window</h3>
+          <p>KDE density curves for each status category. Rotten films show a peak earlier in the distribution, suggesting studios move underperforming movies to streaming sooner to recoup costs.</p>
+        </div>
+      </div>
+      <div class="chart-card">
+        <img src="visualizations/09_pairplot.png" alt="Pairplot" loading="lazy" />
+        <div class="chart-info">
+          <div class="chart-num">Chart 09</div>
+          <h3>Numeric Variable Pairplot</h3>
+          <p>All pairwise relationships between Tomatometer rating, Audience rating, and runtime — coloured by Tomatometer status. Confirms moderate critic–audience correlation and relatively weak runtime effects.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ INSIGHTS ═════════════════════════════ -->
+<section id="insights">
+  <div class="container">
+    <div class="section-label">Summary</div>
+    <h2>Key Findings</h2>
+    <p class="section-intro">The most important takeaways from the analysis.</p>
+    <div class="insights-grid">
+      <div class="insight-card">
+        <div class="insight-icon">📊</div>
+        <div>
+          <h4>Moderate critic–audience agreement</h4>
+          <p>Pearson r ≈ 0.67. Critics and audiences broadly agree, but diverge significantly in certain genres and for extreme scores.</p>
+        </div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-icon">🎯</div>
+        <div>
+          <h4>Certified Fresh films earn audience trust</h4>
+          <p>Certified Fresh movies average ~20+ audience-rating points higher than Rotten films, showing that critic consensus is a reliable quality signal.</p>
+        </div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-icon">🎬</div>
+        <div>
+          <h4>Genre drives the critic–audience gap</h4>
+          <p>Horror and Action audiences rate far more generously than critics. Documentary and Drama see the opposite — critics are the bigger fans.</p>
+        </div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-icon">⏱️</div>
+        <div>
+          <h4>Rotten films stream sooner</h4>
+          <p>The median streaming window for Rotten films is noticeably shorter than for Fresh or Certified Fresh films, suggesting studios fast-track underperformers to VOD.</p>
+        </div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-icon">🏆</div>
+        <div>
+          <h4>Studio quality is consistent</h4>
+          <p>The top 15 studios (min 30 films) all average above 60% on the Tomatometer, with prestige and arthouse labels leading by a wide margin.</p>
+        </div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-icon">📅</div>
+        <div>
+          <h4>The critic–audience gap is widening</h4>
+          <p>Since the early 2000s, average critic scores have trended upward while audience scores have stayed flatter — the gap is a recent and growing phenomenon.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ STACK ════════════════════════════════ -->
+<section id="stack">
+  <div class="container">
+    <div class="section-label">Tech Stack</div>
+    <h2>Built With</h2>
+    <p class="section-intro">Everything used to clean, analyse, and visualise this dataset.</p>
+    <div class="tech-grid">
+      <div class="tech-badge">🐍 Python <span>3.10+</span></div>
+      <div class="tech-badge">🐼 pandas <span>data wrangling</span></div>
+      <div class="tech-badge">🔢 NumPy <span>numerical ops</span></div>
+      <div class="tech-badge">📈 Matplotlib <span>base plotting</span></div>
+      <div class="tech-badge">🎨 Seaborn <span>statistical viz</span></div>
+    </div>
+
+    <div style="margin-top:40px;">
+      <div class="section-label">Dataset</div>
+      <h2 style="font-size:20px; margin-bottom:8px;">Rotten Tomatoes Movies</h2>
+      <p style="color:var(--muted);">
+        Source: <a href="https://mavenanalytics.io/data-playground" target="_blank">Maven Analytics Data Playground</a><br>
+        ~17 000 movies · columns include title, MPAA rating, genre, studio, directors, theater/streaming dates, runtime, Tomatometer rating/status/count, audience rating/count.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ FOOTER ═══════════════════════════════ -->
+<footer>
+  <div class="container">
+    <p>Built by <a href="https://github.com/moataz440" target="_blank">Moataz</a> · <a href="https://github.com/moataz440/Rotten-Tomatoes-Analytics" target="_blank">View on GitHub</a></p>
+  </div>
+</footer>
+
+<script>
+  // Highlight nav link on scroll
+  const sections = document.querySelectorAll("section[id]");
+  const navLinks  = document.querySelectorAll("nav a");
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          navLinks.forEach((l) => l.classList.remove("active"));
+          const active = document.querySelector(`nav a[href="#${entry.target.id}"]`);
+          if (active) active.classList.add("active");
+        }
+      });
+    },
+    { rootMargin: "-40% 0px -55% 0px" }
+  );
+
+  sections.forEach((s) => observer.observe(s));
+</script>
+
+</body>
+</html>
