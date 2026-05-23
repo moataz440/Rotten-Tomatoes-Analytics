@@ -37,3 +37,12 @@ Thumbs.db
 # Jupyter
 .ipynb_checkpoints/
 *.ipynb
+
+# Node (stray lockfiles)
+package-lock.json
+node_modules/
+
+# Claude Code artifacts
+.claude/
+.dist/
+.sixth/
